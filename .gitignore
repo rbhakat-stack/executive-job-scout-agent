@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+.streamlit/secrets.toml
+
+# IDE / agent
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local DBs / artifacts
+*.sqlite
+*.sqlite3
+*.db
+runs/
+logs/
+.cache/
+
+# Eval outputs
+evals/results/
+
+# User uploads at runtime
+uploads/

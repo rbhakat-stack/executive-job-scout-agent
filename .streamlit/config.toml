@@ -1,0 +1,13 @@
+# Streamlit configuration committed to the repo.
+# Secrets go in .streamlit/secrets.toml (gitignored) — never here.
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
