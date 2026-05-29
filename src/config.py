@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     # --- App ---
     APP_ENV: str = "local"
     LOG_LEVEL: str = "INFO"
-    DEFAULT_POSTING_MAX_AGE_DAYS: int = Field(default=14, ge=1, le=365)
+    DEFAULT_POSTING_MAX_AGE_DAYS: int = Field(default=45, ge=1, le=365)
     HTTP_TIMEOUT_SECONDS: int = 15
     HTTP_USER_AGENT: str = "ExecutiveJobScout/0.1 (+local-run)"
 

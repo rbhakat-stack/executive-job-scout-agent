@@ -18,6 +18,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -86,6 +87,15 @@ def extract_from_html(html: str, *, source_url: str) -> ExtractedJob:
 
     if not out.body_text:
         out.body_text = _visible_text(soup)
+
+    # 2a. Company fallbacks. JSON-LD is missing on many real career pages
+    #     (especially Greenhouse `job-boards.greenhouse.io` and custom
+    #     career portals). Try several signals in order of reliability.
+    if not out.company:
+        out.company = (
+            _company_from_meta(soup)
+            or _company_from_ats_url(source_url)
+        )
 
     # 3. Date fallback: <meta property="article:published_time">
     if not out.posted_at:
@@ -285,3 +295,82 @@ def _infer_work_mode(body: str) -> Optional[str]:
     if any(p in b for p in _ONSITE_PHRASES):
         return "onsite"
     return None
+
+
+# ---------------------------------------------------------------------------
+# Company-from-URL extraction (fallback when JSON-LD is absent)
+# ---------------------------------------------------------------------------
+
+def _company_from_meta(soup: BeautifulSoup) -> Optional[str]:
+    """Try OpenGraph + similar meta tags for the site/company name."""
+    for selector in (
+        ("meta", {"property": "og:site_name"}),
+        ("meta", {"name": "application-name"}),
+        ("meta", {"name": "apple-mobile-web-app-title"}),
+    ):
+        tag = soup.find(*selector)
+        if tag and tag.get("content"):
+            v = tag["content"].strip()
+            if v and v.lower() not in ("careers", "jobs", "job board"):
+                return v
+    return None
+
+
+def _company_from_ats_url(source_url: str) -> Optional[str]:
+    """Derive company from ATS URL patterns.
+
+    Examples that this handles:
+      job-boards.greenhouse.io/10xgenomics/jobs/123  -> "10xgenomics"
+      boards.greenhouse.io/acme/jobs/123             -> "Acme"
+      jobs.lever.co/patsnap/abc-123                  -> "Patsnap"
+      jobs.ashbyhq.com/openai/some-job               -> "Openai"
+      jobs.smartrecruiters.com/Acme/123              -> "Acme"
+      acme.icims.com/jobs/...                        -> "Acme"
+      acme.wd5.myworkdayjobs.com/...                 -> "Acme"
+    """
+    if not source_url:
+        return None
+    try:
+        parsed = urlparse(source_url)
+    except ValueError:
+        return None
+    host = (parsed.netloc or "").lower()
+    path = parsed.path or ""
+
+    # Subdomain-based hosts: {company}.icims.com, {company}.myworkdayjobs.com
+    if "icims.com" in host:
+        m = re.match(r"^([^.]+)\.icims\.com$", host)
+        if m and m.group(1) not in ("www", "jobs", "careers"):
+            return _titleize_slug(m.group(1))
+    if "myworkdayjobs.com" in host:
+        m = re.match(r"^([^.]+)\.", host)
+        if m and m.group(1) not in ("www", "jobs", "careers"):
+            return _titleize_slug(m.group(1))
+
+    # Path-based hosts: first path segment is the company slug.
+    path_first = path.lstrip("/").split("/", 1)[0] if path.strip("/") else ""
+
+    PATH_ATS_HOSTS = (
+        "greenhouse.io",        # boards.greenhouse.io, job-boards.greenhouse.io
+        "lever.co",             # jobs.lever.co
+        "ashbyhq.com",          # jobs.ashbyhq.com
+        "smartrecruiters.com",  # jobs.smartrecruiters.com
+    )
+    if any(h in host for h in PATH_ATS_HOSTS) and path_first:
+        return _titleize_slug(path_first)
+
+    return None
+
+
+def _titleize_slug(slug: str) -> str:
+    """Convert a URL slug to a presentable company name.
+
+    'inizio-evoke' -> 'Inizio Evoke'
+    '10xgenomics'  -> '10Xgenomics'  (best-effort; leaves it readable)
+    'patsnap'      -> 'Patsnap'
+    """
+    s = slug.replace("-", " ").replace("_", " ").strip()
+    if not s:
+        return slug
+    # Title-case but preserve digits at the front.
+    return " ".join(p[:1].upper() + p[1:] for p in s.split())

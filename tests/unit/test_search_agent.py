@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from src.agents.planner import build_search_plan
-from src.agents.search import SearchAgent, detect_ats
+from src.agents.search import SearchAgent, detect_ats, is_likely_non_job
 from src.schemas import (
     ATS,
     CandidateProfile,
@@ -47,6 +47,74 @@ class TestDetectAts:
     )
     def test_detect(self, url: str, expected):
         assert detect_ats(url) == expected
+
+
+class TestIsLikelyNonJob:
+    """Pre-filter that drops obvious non-job URLs before validation."""
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            # Articles / blogs / insights
+            "https://www.deloitte.com/us/en/insights/topics/digital-transformation",
+            "https://www.ibm.com/think/topics/ai-transformation",
+            "https://blog.example.com/blog/role-of-a-digital-leader",
+            "https://example.com/articles/managing-director-vs-director",
+            # Dictionaries / definitions
+            "https://en.wikipedia.org/wiki/Partner_(business_rank)",
+            "https://dictionary.cambridge.org/us/dictionary/english/senior-partner",
+            "https://definitions.lsd.law/senior-partner",
+            # Courses / programs
+            "https://www.coursera.org/specializations/digital-transformation-leader",
+            "https://execonline.hms.harvard.edu/senior-life-sciences-leaders-program",
+            # PDFs and Office files
+            "https://example.com/wp-content/uploads/2024/02/BIO-EA_Admin-as-posted-1.pdf",
+            "https://example.com/jobs/some-job.pdf",
+            # Social / videos
+            "https://www.linkedin.com/in/janedoe",
+            "https://www.linkedin.com/company/the-digital-transformation-leaders",
+            "https://www.youtube.com/watch?v=abc",
+            "https://medium.com/some-article",
+            # Bot-walled job aggregators
+            "https://www.indeed.com/q-Digital-Transformation-Leader-jobs.html",
+            "https://www.ziprecruiter.com/Jobs/Digital-Transformation-Leader",
+            # Topical landing pages
+            "https://example.com/topics/ai",
+            "https://example.com/category/leadership",
+        ],
+    )
+    def test_obvious_non_jobs_are_filtered(self, url):
+        assert is_likely_non_job(url) is True, f"should have been filtered: {url}"
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            # Real ATS job pages
+            "https://boards.greenhouse.io/acme/jobs/123",
+            "https://job-boards.greenhouse.io/10xgenomics/jobs/7537471",
+            "https://jobs.lever.co/patsnap/abc-123",
+            "https://jobs.ashbyhq.com/openai/job-id",
+            "https://acme.wd5.myworkdayjobs.com/en-US/External/job/foo",
+            "https://acme.icims.com/jobs/123/some-role",
+            # Custom company career pages
+            "https://careers.pfizer.com/job/12345",
+            "https://www.databricks.com/company/careers/some-role",
+            "https://www.example.com/careers/director-of-ai",
+            # LinkedIn JOBS (different from /company/ or /in/)
+            "https://www.linkedin.com/jobs/view/4123456789",
+        ],
+    )
+    def test_legit_job_urls_pass(self, url):
+        assert is_likely_non_job(url) is False, f"should have passed: {url}"
+
+    def test_positive_pattern_overrides_negative(self):
+        # An /insights/ path that also contains /jobs/ survives.
+        assert is_likely_non_job(
+            "https://example.com/insights/careers/jobs/director"
+        ) is False
+
+    def test_empty_url(self):
+        assert is_likely_non_job("") is True
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +261,22 @@ class TestSearchAgent:
         )
         leads = SearchAgent(provider).run(_plan())
         assert leads[0].search_engine_date == d
+
+    def test_pre_filter_drops_non_job_urls_and_counts_them(self):
+        provider = FakeSearchProvider(
+            results_by_query={
+                '"VP AI"': [
+                    _result(url="https://en.wikipedia.org/wiki/VP_AI"),
+                    _result(url="https://example.com/wp-content/uploads/job.pdf"),
+                    _result(url="https://boards.greenhouse.io/acme/jobs/123"),
+                ]
+            }
+        )
+        agent = SearchAgent(provider)
+        leads = agent.run(_plan())
+        assert len(leads) == 1
+        assert "greenhouse.io" in str(leads[0].url)
+        assert agent.pre_filtered == 2
 
     def test_end_to_end_with_planner(self):
         # Planner builds queries; provider returns canned results keyed by

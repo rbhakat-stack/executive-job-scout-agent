@@ -148,6 +148,121 @@ class TestExpiredSignals:
         assert out.expired_signals == []
 
 
+class TestCompanyFromUrl:
+    """When JSON-LD is missing, we should still recover the company from
+    well-known ATS URL patterns."""
+
+    def test_greenhouse_classic(self):
+        html = (
+            "<html><body><h1>VP AI Transformation</h1>"
+            "<p>Lead AI transformation across pharma. Substantive body text "
+            "that clears the 50-char minimum easily.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://boards.greenhouse.io/acme/jobs/123"
+        )
+        assert out.company == "Acme"
+
+    def test_greenhouse_job_boards_variant(self):
+        # job-boards.greenhouse.io is the newer variant Greenhouse uses.
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation. Substantive body text content.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://job-boards.greenhouse.io/10xgenomics/jobs/7537471"
+        )
+        # Slugs starting with a digit (real brand: 10x Genomics) keep their
+        # original case — we don't try to guess where to insert spaces.
+        assert out.company == "10xgenomics"
+
+    def test_lever_slug(self):
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation across pharma. Substantive body content.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://jobs.lever.co/patsnap/91674214-6d6c-41c2"
+        )
+        assert out.company == "Patsnap"
+
+    def test_lever_hyphenated_slug(self):
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation across pharma. Substantive body content.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://jobs.lever.co/inizio-evoke/abc-123"
+        )
+        assert out.company == "Inizio Evoke"
+
+    def test_icims_subdomain(self):
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation across pharma. Substantive body content.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://acme.icims.com/jobs/123/vp-ai"
+        )
+        assert out.company == "Acme"
+
+    def test_workday_subdomain(self):
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation across pharma. Substantive body content.</p></body></html>"
+        )
+        out = extract_from_html(
+            html, source_url="https://acme.wd5.myworkdayjobs.com/en-US/External/job/123"
+        )
+        assert out.company == "Acme"
+
+    def test_og_site_name_meta_fallback(self):
+        html = (
+            '<html><head><meta property="og:site_name" content="Acme Bio Pharma">'
+            '</head><body><h1>VP AI</h1>'
+            '<p>Lead AI transformation. Substantive body content for length.</p></body></html>'
+        )
+        out = extract_from_html(
+            html, source_url="https://careers.acme.com/job/123"
+        )
+        assert out.company == "Acme Bio Pharma"
+
+    def test_og_meta_skips_generic_values(self):
+        # 'Careers' / 'Jobs' / 'Job Board' aren't useful as company names.
+        html = (
+            '<html><head><meta property="og:site_name" content="Careers">'
+            '</head><body><h1>VP AI</h1>'
+            '<p>Lead AI transformation. Substantive body content for length.</p></body></html>'
+        )
+        out = extract_from_html(
+            html, source_url="https://boards.greenhouse.io/acme/jobs/123"
+        )
+        # Falls through to URL parse.
+        assert out.company == "Acme"
+
+    def test_no_signal_means_no_company(self):
+        html = (
+            "<html><body><h1>VP AI</h1>"
+            "<p>Lead AI transformation. Substantive body content for length checks.</p></body></html>"
+        )
+        out = extract_from_html(html, source_url="https://random-blog.example.com/x")
+        assert out.company is None
+
+    def test_jsonld_wins_over_fallbacks(self):
+        # JSON-LD has authoritative company; URL says something else.
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"@type":"JobPosting","title":"VP AI",'
+            '"hiringOrganization":{"name":"Real Co"},'
+            '"description":"<p>Substantive body text content for length checks.</p>"}'
+            '</script></head><body></body></html>'
+        )
+        out = extract_from_html(
+            html, source_url="https://boards.greenhouse.io/wrongco/jobs/123"
+        )
+        assert out.company == "Real Co"
+
+
 class TestSignalDetection:
     def test_email_extracted_as_recruiter_contact(self):
         html = (

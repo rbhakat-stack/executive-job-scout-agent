@@ -158,14 +158,22 @@ def render_criteria_and_run_section(provider: str, model: str) -> None:
         max_age_days = st.slider(
             "Max posting age (days)",
             min_value=1,
-            max_value=90,
-            value=14,
+            max_value=180,
+            value=45,
+            help="Executive search cycles often run 30-90 days. Default 45.",
         )
         allow_older = st.checkbox(
             "Allow older postings (skip the freshness rejection)", value=False
         )
         prioritize_urgent = st.checkbox("Prioritize urgent postings", value=True)
-        min_match_score = st.slider("Minimum match score to surface", 0, 100, 60, 5)
+        min_match_score = st.slider(
+            "Minimum match score to surface",
+            min_value=0,
+            max_value=100,
+            value=35,
+            step=5,
+            help="Real Tavily-discovered roles often score 30-50. Tighten if too noisy.",
+        )
 
     try:
         criteria = SearchCriteria(

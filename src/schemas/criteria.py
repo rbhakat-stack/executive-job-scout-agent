@@ -41,11 +41,14 @@ class SearchCriteria(BaseModel):
     exclusion_keywords: list[str] = Field(default_factory=list)
 
     # --- Thresholds enforced by Validation + Red Team ---
+    # Defaults calibrated for senior executive search where roles are open
+    # for 30-90 days and Tavily-discovered postings rarely earn high scores
+    # purely from token overlap. UI sliders let users tighten further.
     max_age_days: int = Field(
-        default=14,
+        default=45,
         ge=1,
         le=365,
-        description="Posting freshness window. Default 14d.",
+        description="Posting freshness window. Default 45d (exec search cycles run longer).",
     )
     allow_older: bool = Field(
         default=False,
@@ -56,10 +59,14 @@ class SearchCriteria(BaseModel):
         description="Boost urgency-flagged postings in the final ranking.",
     )
     min_match_score: int = Field(
-        default=60,
+        default=35,
         ge=0,
         le=100,
-        description="Red Team rejects postings below this match score.",
+        description=(
+            "Red Team rejects postings below this match score. "
+            "Default 35 — calibrated from real Tavily score distribution; "
+            "tighten via the UI for stricter filtering."
+        ),
     )
 
     @field_validator("comp_max_usd")

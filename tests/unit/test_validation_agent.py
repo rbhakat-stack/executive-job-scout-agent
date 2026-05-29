@@ -201,9 +201,12 @@ class TestRequiredFields:
             '<p>Lead AI transformation across pharma. Substantive body content.</p>'
             '</body></html>'
         )
+        # Use a non-ATS host so the URL-based company fallback doesn't kick
+        # in (the whole point of this test is "no JSON-LD AND no other
+        # signal -> reject").
+        lead = _lead(url="https://careers.unknownco.example.com/job/123")
         def handler(req): return httpx.Response(200, text=html)
-        out = _agent(_client(handler)).validate(_lead(), SearchCriteria())
-        # No JSON-LD -> no company source -> rejected.
+        out = _agent(_client(handler)).validate(lead, SearchCriteria())
         assert not out.accepted
         assert "missing company" in out.rejection.reason
 

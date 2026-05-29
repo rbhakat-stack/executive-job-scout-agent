@@ -70,10 +70,11 @@ class TestFreshnessInvariant:
 class TestSearchCriteria:
     def test_defaults(self):
         c = SearchCriteria()
-        assert c.max_age_days == 14
+        # Defaults tuned for senior executive search; see criteria.py rationale.
+        assert c.max_age_days == 45
         assert c.allow_older is False
         assert c.prioritize_urgent is True
-        assert c.min_match_score == 60
+        assert c.min_match_score == 35
         # Default to all work modes allowed
         assert set(c.work_modes) == {WorkMode.REMOTE, WorkMode.HYBRID, WorkMode.ONSITE}
 
