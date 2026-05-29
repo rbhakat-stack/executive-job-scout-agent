@@ -5,7 +5,7 @@ from datetime import date
 
 import pytest
 
-from src.schemas import (
+from job_scout.schemas import (
     ATS,
     Freshness,
     FreshnessEvidence,
@@ -20,7 +20,7 @@ from src.schemas import (
     ValidationResult,
     WorkMode,
 )
-from src.scoring.urgency import compute_urgency_features
+from job_scout.scoring.urgency import compute_urgency_features
 
 
 TODAY = date(2026, 5, 27)

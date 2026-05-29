@@ -6,14 +6,14 @@ from datetime import date
 
 import httpx
 
-from src.orchestrator import Orchestrator
-from src.schemas import (
+from job_scout.orchestrator import Orchestrator
+from job_scout.schemas import (
     CandidateProfile,
     SearchCriteria,
     SearchProviderName,
     SeniorityLevel,
 )
-from src.search_providers import FakeSearchProvider, SearchProviderResult
+from job_scout.search_providers import FakeSearchProvider, SearchProviderResult
 
 TODAY = date(2026, 5, 27)
 
@@ -142,7 +142,7 @@ class TestOrchestrator:
         assert scores == sorted(scores, reverse=True)
 
     def test_search_provider_error_recorded_not_raised(self):
-        from src.search_providers.base import SearchProviderError
+        from job_scout.search_providers.base import SearchProviderError
 
         def responder(q):
             raise SearchProviderError("upstream down")
@@ -182,7 +182,7 @@ class TestOrchestrator:
         """Two-pass scoring: jobs that fail the deterministic match
         threshold must NOT trigger an LLM call. Saves tokens + avoids
         rate limits on doomed leads."""
-        from src.llm import FakeLLM
+        from job_scout.llm import FakeLLM
 
         # Weak job: junior frontend role, no overlap with senior life-sci profile.
         weak_html = (

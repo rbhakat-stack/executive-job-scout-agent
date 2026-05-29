@@ -8,7 +8,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Ensure the repo root is on sys.path so `import src.*` works in tests
+# Ensure the repo root is on sys.path so `import job_scout.*` works in tests
 # regardless of how pytest is invoked.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:

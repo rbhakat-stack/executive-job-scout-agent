@@ -10,7 +10,7 @@ from datetime import date
 
 import pytest
 
-from src.schemas import (
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Freshness,
@@ -28,7 +28,7 @@ from src.schemas import (
     ValidationResult,
     WorkMode,
 )
-from src.scoring.match import compute_match_features
+from job_scout.scoring.match import compute_match_features
 
 
 # ---------------------------------------------------------------------------

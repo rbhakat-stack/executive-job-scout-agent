@@ -10,9 +10,9 @@ from datetime import date
 
 import pytest
 
-from src.agents.evidence import EvidenceAgent, coverage_gaps
-from src.agents.scoring import ScoringAgent
-from src.schemas import (
+from job_scout.agents.evidence import EvidenceAgent, coverage_gaps
+from job_scout.agents.scoring import ScoringAgent
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Freshness,

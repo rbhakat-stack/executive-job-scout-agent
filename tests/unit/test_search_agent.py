@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 import httpx
 import pytest
 
-from src.agents.planner import build_search_plan
-from src.agents.search import SearchAgent, detect_ats, is_likely_non_job
-from src.schemas import (
+from job_scout.agents.planner import build_search_plan
+from job_scout.agents.search import SearchAgent, detect_ats, is_likely_non_job
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     SearchCriteria,
@@ -18,7 +18,7 @@ from src.schemas import (
     SearchStrategy,
     SeniorityLevel,
 )
-from src.search_providers import (
+from job_scout.search_providers import (
     FakeSearchProvider,
     SearchProviderError,
     SearchProviderResult,

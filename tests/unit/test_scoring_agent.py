@@ -4,9 +4,9 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from src.agents.scoring import ScoringAgent
-from src.llm import FakeLLM
-from src.schemas import (
+from job_scout.agents.scoring import ScoringAgent
+from job_scout.llm import FakeLLM
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Freshness,
@@ -24,8 +24,8 @@ from src.schemas import (
     ValidationResult,
     WorkMode,
 )
-from src.scoring.rationale import is_substantive_rationale
-from src.scoring.match import compute_match_features
+from job_scout.scoring.rationale import is_substantive_rationale
+from job_scout.scoring.match import compute_match_features
 
 TODAY = date(2026, 5, 27)
 

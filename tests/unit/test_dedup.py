@@ -6,7 +6,7 @@ query params) produce the same dedup_hash.
 """
 from __future__ import annotations
 
-from src.validation.dedup import canonicalize_url, compute_dedup_hash
+from job_scout.validation.dedup import canonicalize_url, compute_dedup_hash
 
 
 class TestCanonicalizeUrl:

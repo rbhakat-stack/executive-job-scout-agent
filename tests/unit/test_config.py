@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.config import (
+from job_scout.config import (
     SESSION_KEY_NAMES,
     SessionKeyStore,
     Settings,

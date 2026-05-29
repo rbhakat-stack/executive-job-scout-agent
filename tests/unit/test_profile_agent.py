@@ -6,9 +6,9 @@ import json
 
 import pytest
 
-from src.agents.profile import ProfileAgent, ProfileAgentError
-from src.llm import FakeLLM
-from src.schemas import CandidateProfile, SeniorityLevel
+from job_scout.agents.profile import ProfileAgent, ProfileAgentError
+from job_scout.llm import FakeLLM
+from job_scout.schemas import CandidateProfile, SeniorityLevel
 
 
 def _canned_profile_json() -> str:

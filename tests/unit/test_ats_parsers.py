@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 
-from src.parsers.ats import EXPIRED_PHRASES, extract_from_html
+from job_scout.parsers.ats import EXPIRED_PHRASES, extract_from_html
 
 
 def _html_with_jsonld(payload: dict, body_html: str = "<p>Generic body text.</p>") -> str:

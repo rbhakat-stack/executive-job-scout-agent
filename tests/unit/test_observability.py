@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.llm import FakeLLM
-from src.observability import (
+from job_scout.llm import FakeLLM
+from job_scout.observability import (
     MeteredLLM,
     configure_logging,
     estimate_cost_usd,

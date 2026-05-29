@@ -16,8 +16,8 @@ from datetime import date
 import httpx
 import pytest
 
-from src.agents.validation import ValidationAgent
-from src.schemas import (
+from job_scout.agents.validation import ValidationAgent
+from job_scout.schemas import (
     ATS,
     FreshnessLabel,
     RawJobLead,

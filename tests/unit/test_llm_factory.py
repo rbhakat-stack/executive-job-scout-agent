@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.config import SessionKeyStore, Settings
-from src.llm import LLMError, build_llm
+from job_scout.config import SessionKeyStore, Settings
+from job_scout.llm import LLMError, build_llm
 
 
 class TestBuildLLM:
@@ -52,13 +52,13 @@ class TestLLMErrorLocation:
     """
 
     def test_lives_in_neutral_module(self):
-        assert LLMError.__module__ == "src.llm.errors"
+        assert LLMError.__module__ == "job_scout.llm.errors"
 
     def test_all_adapters_use_the_same_exception(self):
         # Importing from each adapter module should yield the same class.
-        from src.llm.anthropic_client import LLMError as A
-        from src.llm.groq_client import LLMError as G
-        from src.llm.openai_client import LLMError as O
+        from job_scout.llm.anthropic_client import LLMError as A
+        from job_scout.llm.groq_client import LLMError as G
+        from job_scout.llm.openai_client import LLMError as O
         assert A is LLMError
         assert G is LLMError
         assert O is LLMError

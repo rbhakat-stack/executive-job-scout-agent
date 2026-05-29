@@ -12,8 +12,8 @@ from __future__ import annotations
 from datetime import date
 from uuid import uuid4
 
-from src.db.memory_repo import InMemoryRepositories
-from src.schemas import (
+from job_scout.db.memory_repo import InMemoryRepositories
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Citation,

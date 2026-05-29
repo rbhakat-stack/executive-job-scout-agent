@@ -14,7 +14,7 @@ from datetime import date, datetime
 import pytest
 from pydantic import ValidationError
 
-from src.schemas import (
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Citation,

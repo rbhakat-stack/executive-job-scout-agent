@@ -10,7 +10,7 @@ from io import BytesIO
 
 import pytest
 
-from src.parsers.resume import UnsupportedResumeFormat, extract_resume_text
+from job_scout.parsers.resume import UnsupportedResumeFormat, extract_resume_text
 
 SAMPLE_TXT = "John Doe\nVP AI Transformation\n20 years life sciences.\n"
 

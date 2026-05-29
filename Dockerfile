@@ -26,7 +26,7 @@ RUN pip install -r requirements.txt
 
 # Copy app source.
 COPY app.py ./
-COPY src/ ./src/
+COPY job_scout/ ./job_scout/
 COPY supabase/ ./supabase/
 COPY evals/ ./evals/
 COPY pytest.ini ./

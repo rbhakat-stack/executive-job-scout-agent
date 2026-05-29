@@ -1,7 +1,7 @@
 """LinkedIn text parser tests."""
 from __future__ import annotations
 
-from src.parsers.linkedin import parse_linkedin_text
+from job_scout.parsers.linkedin import parse_linkedin_text
 
 
 class TestEmpty:

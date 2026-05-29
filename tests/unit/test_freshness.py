@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from src.parsers.ats import ExtractedJob
-from src.schemas import FreshnessLabel
-from src.validation.freshness import infer_freshness
+from job_scout.parsers.ats import ExtractedJob
+from job_scout.schemas import FreshnessLabel
+from job_scout.validation.freshness import infer_freshness
 
 
 TODAY = date(2026, 5, 27)

@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import date
 
-from src.agents.evidence import EvidenceAgent
-from src.agents.report import ReportAgent
-from src.agents.scoring import ScoringAgent
-from src.schemas import (
+from job_scout.agents.evidence import EvidenceAgent
+from job_scout.agents.report import ReportAgent
+from job_scout.agents.scoring import ScoringAgent
+from job_scout.schemas import (
     ATS,
     CandidateProfile,
     Citation,

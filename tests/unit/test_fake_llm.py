@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.llm import FakeLLM
+from job_scout.llm import FakeLLM
 
 
 class TestFakeLLM:

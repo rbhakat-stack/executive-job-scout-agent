@@ -4,7 +4,7 @@ The UI flow lives in `src/ui/pages.py`. This file is the runtime entry only.
 """
 from __future__ import annotations
 
-from src.ui.pages import render_app
+from job_scout.ui.pages import render_app
 
 
 if __name__ == "__main__":

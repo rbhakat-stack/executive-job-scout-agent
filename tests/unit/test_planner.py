@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import pytest
 
-from src.agents.planner import (
+from job_scout.agents.planner import (
     ATS_SITE_FILTERS,
     DEFAULT_QUERY_CAPS,
     build_search_plan,
 )
-from src.schemas import (
+from job_scout.schemas import (
     CandidateProfile,
     SearchCriteria,
     SearchStrategy,
