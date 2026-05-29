@@ -295,8 +295,11 @@ class TestSearchAgent:
         plan = build_search_plan(profile, criteria)
         assert plan.queries  # sanity
 
+        # URL must look like a job page (strict mode is on by default).
         provider = FakeSearchProvider(
-            responder=lambda q: [_result(url=f"https://example.com/q/{hash(q) % 1000}")]
+            responder=lambda q: [
+                _result(url=f"https://boards.greenhouse.io/acme/jobs/{hash(q) % 1000}")
+            ]
         )
         leads = SearchAgent(provider, max_results_per_query=1).run(plan)
         assert len(leads) > 0

@@ -89,6 +89,12 @@ _NON_JOB_PATH_PATTERNS: tuple[str, ...] = (
     "/how-to-", "/how-do-", "/howto-",
     "/guide-to-", "/guides-to-",
     "-vs-",                             # comparison articles ("director-vs-vp"), substring not anchored
+    "-salary",                          # hays-style "managing-director-salary" pages
+    "/salary/", "/salaries/", "/salary-",
+    "/post/", "/posts/",                # tealhq-style article paths
+    "/inside-look/",                    # LinkedIn-style content
+    "/recruiters/", "/recruiter/",      # firm landing pages
+    "/executive-search/",
 )
 
 # Domains that don't host job postings — articles, definitions, courses,
@@ -139,7 +145,6 @@ _NON_HTML_EXTENSIONS: tuple[str, ...] = (
 )
 
 # Positive: URL path containing any of these is *probably* a job posting.
-# Used to override the non-job-pattern reject when both match.
 _LIKELY_JOB_PATTERNS: tuple[str, ...] = (
     "/job/", "/jobs/",
     "/careers/", "/career/",
@@ -153,13 +158,35 @@ _LIKELY_JOB_PATTERNS: tuple[str, ...] = (
     "/apply/",
 )
 
+# Host substrings that strongly suggest the URL points at a real job page,
+# even when no recognized job-path pattern appears in the URL.
+_LIKELY_JOB_HOST_HINTS: tuple[str, ...] = (
+    # ATS hosts (mirror of _ATS_HOST_RULES)
+    "greenhouse.io",
+    "lever.co",
+    "ashbyhq.com",
+    "smartrecruiters.com",
+    "icims.com",
+    "myworkdayjobs.com",
+    "workday.com",
+    # Generic "this is a careers/jobs portal" subdomains
+    "careers.",                          # careers.{company}.com
+    "jobs.",                             # jobs.{company}.com
+    "talent.com",                        # job aggregator (legit jobs, no pattern in path)
+)
 
-def is_likely_non_job(url: str) -> bool:
+
+def is_likely_non_job(url: str, *, strict: bool = True) -> bool:
     """Heuristic pre-filter: True when the URL is almost certainly NOT a job.
 
     Applied in the Search Agent before HTTP fetch so we don't burn validation
     cycles on articles, dictionaries, PDFs, social media, and bot-walled
     hosts that real-world Tavily results constantly include.
+
+    `strict=True` (default): also require a positive job signal — either
+    a known job-bearing host (ATS, careers./jobs. subdomain) OR a job-like
+    path pattern. Filters out landing pages and marketing URLs that don't
+    pattern-match any negative list. Set to False for looser results.
     """
     try:
         parsed = urlparse(url)
@@ -184,12 +211,22 @@ def is_likely_non_job(url: str) -> bool:
         if h in host:
             return True
 
+    has_non_job = any(p in path for p in _NON_JOB_PATH_PATTERNS)
+    has_job_path = any(p in path for p in _LIKELY_JOB_PATTERNS)
+    has_job_host = any(h in host for h in _LIKELY_JOB_HOST_HINTS)
+    has_positive_signal = has_job_path or has_job_host
+
     # Path heuristic: if it screams "article" AND nothing screams "job",
     # reject. The positive override means "/blog/jobs/" or "/insights/careers/"
     # (rare but possible) survives.
-    has_non_job = any(p in path for p in _NON_JOB_PATH_PATTERNS)
-    has_job = any(p in path for p in _LIKELY_JOB_PATTERNS)
-    if has_non_job and not has_job:
+    if has_non_job and not has_positive_signal:
+        return True
+
+    # Strict mode: require a positive job signal. Filters out landing pages
+    # and marketing URLs that lack any negative pattern but also lack any
+    # "this is actually a job" hint (e.g. cognizant.com/industries/...,
+    # tgcsearch.com/, tealhq.com/post/...).
+    if strict and not has_positive_signal:
         return True
 
     return False
