@@ -36,6 +36,9 @@ def deterministic_rationale(
     urgency_features: list[ScoreFeature],
     match_score: int,
     urgency_score: int,
+    seniority_multiplier: float = 1.0,
+    seniority_note: Optional[str] = None,
+    raw_match_before_multiplier: Optional[int] = None,
 ) -> RationaleTuple:
     strong = [f for f in match_features if f.weight > 0 and f.contribution >= f.weight * 0.6]
     weak = [
@@ -47,6 +50,19 @@ def deterministic_rationale(
     parts = [
         f"Match score {match_score}/100 for the {job.title} role at {job.company}."
     ]
+
+    # Surface the seniority adjustment so users see WHY a strong-on-paper
+    # match was dampened (or boosted by being the right level).
+    if (
+        seniority_multiplier < 1.0
+        and raw_match_before_multiplier is not None
+        and raw_match_before_multiplier > match_score
+    ):
+        parts.append(
+            f"Score reduced from {raw_match_before_multiplier}/100 to "
+            f"{match_score}/100 by a x{seniority_multiplier:.2f} seniority "
+            f"alignment multiplier ({seniority_note})."
+        )
     for f in strong:
         parts.append(
             f"Strong on {_humanize(f.name)} "

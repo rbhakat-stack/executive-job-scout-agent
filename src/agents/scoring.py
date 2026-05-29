@@ -16,15 +16,72 @@ from src.schemas import (
     ScoreFeature,
     ScoreResult,
     SearchCriteria,
+    SeniorityLevel,
     ValidatedJob,
 )
-from src.scoring.match import compute_match_features
+from src.scoring.match import (
+    _PROFILE_SENIORITY_RANK,
+    _TITLE_SENIORITY_RANK,
+    compute_match_features,
+)
 from src.scoring.rationale import (
     deterministic_rationale,
     is_substantive_rationale,
     llm_rationale,
 )
 from src.scoring.urgency import compute_urgency_features
+
+
+# Seniority gap (|profile_rank - job_rank|) -> multiplier on the match
+# score. A perfect rank match passes through unchanged; a wide gap
+# (e.g. SVP candidate vs Manager-level role) is dampened sharply so
+# junior roles can't bubble up purely on industry/tech overlap.
+_SENIORITY_GAP_MULTIPLIER: dict[int, float] = {
+    0: 1.00,
+    1: 0.85,
+    2: 0.50,
+    3: 0.20,
+    4: 0.10,
+    5: 0.05,
+}
+
+# When the job title carries no recognized seniority phrase at all
+# (e.g. "Account Executive", "Specialist"), apply a mild caution
+# multiplier — we don't know the seniority, so don't fully trust the
+# content overlap.
+_SENIORITY_UNDETECTED_MULTIPLIER = 0.75
+
+
+def _seniority_multiplier(
+    *, job_title: str, profile_seniority: SeniorityLevel
+) -> tuple[float, str]:
+    """Return (multiplier, explanation) for the seniority-alignment correction."""
+    jt = (job_title or "").lower()
+    job_rank: Optional[int] = None
+    matched_kw: Optional[str] = None
+    for kw, rank in sorted(_TITLE_SENIORITY_RANK, key=lambda x: -len(x[0])):
+        if kw in jt:
+            job_rank = rank
+            matched_kw = kw
+            break
+
+    if job_rank is None:
+        return (
+            _SENIORITY_UNDETECTED_MULTIPLIER,
+            "no seniority phrase detected in title; mild caution applied",
+        )
+
+    profile_rank = _PROFILE_SENIORITY_RANK.get(profile_seniority, 0)
+    delta = abs(profile_rank - job_rank)
+    mult = _SENIORITY_GAP_MULTIPLIER.get(delta, 0.05)
+    return (
+        mult,
+        (
+            f"detected '{matched_kw}' (rank {job_rank}) vs profile "
+            f"{profile_seniority.value} (rank {profile_rank}); "
+            f"gap {delta} -> multiplier {mult:.2f}"
+        ),
+    )
 
 
 class ScoringAgent:
@@ -55,7 +112,15 @@ class ScoringAgent:
         today = self._clock()
         match_features = compute_match_features(job, profile, criteria)
         urgency_features = compute_urgency_features(job, today=today)
-        match_score = _clamp_score(match_features)
+
+        # Apply a seniority-alignment multiplier to the raw match score.
+        # Without this, a junior role with strong industry/tech overlap
+        # can score in the 40s-50s for an SVP candidate, which is wrong.
+        raw_match = sum(f.contribution for f in match_features)
+        seniority_mult, seniority_note = _seniority_multiplier(
+            job_title=job.title, profile_seniority=profile.seniority_level,
+        )
+        match_score = max(0, min(100, round(raw_match * seniority_mult)))
         urgency_score = _clamp_score(urgency_features)
 
         # Try LLM first (if available and not skipped); fall back to
@@ -86,6 +151,9 @@ class ScoringAgent:
                 urgency_features=urgency_features,
                 match_score=match_score,
                 urgency_score=urgency_score,
+                seniority_multiplier=seniority_mult,
+                seniority_note=seniority_note,
+                raw_match_before_multiplier=int(round(raw_match)),
             )
 
         return ScoreResult(

@@ -56,21 +56,25 @@ _NON_JOB_PATH_PATTERNS: tuple[str, ...] = (
     "/insights/", "/insight/",
     "/articles/", "/article/",
     "/wiki/",
-    "/dictionary/", "/glossary/",
+    "/dictionary/", "/glossary/", "/definitions/",
     "/topics/", "/topic/",
     "/specializations/", "/specialization/",
     "/category/", "/categories/",
     "/programs/", "/program/",
     "/courses/", "/course/",
+    "/certifications/", "/certification/",
+    "/training/", "/it-training/", "/learning/",
     "/sponsored/",
     "/think/",                          # ibm.com/think
     "/uploads/", "/wp-content/uploads/",
     "/whitepaper", "/whitepapers/",
     "/case-studies/", "/case-study/",
     "/research/",
+    "/resources/", "/resource/",        # generic "resources" sections (articles, templates)
     "/reports/", "/report/",
     "/podcast/", "/podcasts/",
     "/news/",
+    "/legalnews/",                      # jdsupra-style legal articles
     "/press/", "/press-release/", "/press-releases/",
     "/about/", "/about-us/",
     "/team/", "/our-team/", "/people/",
@@ -78,6 +82,13 @@ _NON_JOB_PATH_PATTERNS: tuple[str, ...] = (
     "/publications/", "/publication/",
     "/library/",
     "/community/",                      # community.sap.com, etc.
+    "/template/", "/templates/",        # job-description templates
+    "/sample/", "/samples/",
+    "/example/", "/examples/",
+    "/what-is-", "/what-are-",          # "/what-is-data-strategy/" style
+    "/how-to-", "/how-do-", "/howto-",
+    "/guide-to-", "/guides-to-",
+    "-vs-",                             # comparison articles ("director-vs-vp"), substring not anchored
 )
 
 # Domains that don't host job postings — articles, definitions, courses,
@@ -96,12 +107,20 @@ _NON_JOB_DOMAINS: tuple[str, ...] = (
     "linkedin.com/pulse/",             # LinkedIn articles
     "lin.linkedin.com",                # Indian LinkedIn jobs - usually login-walled
     "definitions.lsd.law",
+    "lsd.law",                          # parent domain
     "legal-resources.uslegalforms.com",
     "lawcrossing.com",
-    "epscientific.com",                # epmscientific.com bot-walls aggressively
-    "execonline.",                     # Harvard / MIT executive-education portals
+    "jdsupra.com",                      # legal news / articles
+    "epscientific.com",                 # epmscientific.com bot-walls aggressively
+    "execonline.",                      # Harvard / MIT executive-education portals
     "executive.stanford.edu",
     "exec.wharton.upenn.edu",
+    "cbtnuggets.com",                   # IT certification training
+    "usaii.org",                        # United States Artificial Intelligence Institute (certs, not jobs)
+    "coursera.org",                     # already in above; keep for clarity
+    "business.linkedin.com",            # LinkedIn talent-solutions content (not jobs)
+    "linkedin.com/learning",            # LinkedIn Learning courses
+    "talent.com/blog",                  # talent.com main domain has real jobs; blog doesn't
 )
 
 # Hosts known to bot-block aggressively (403/429 every time). Saves

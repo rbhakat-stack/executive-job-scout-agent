@@ -64,9 +64,18 @@ class TestIsLikelyNonJob:
             "https://en.wikipedia.org/wiki/Partner_(business_rank)",
             "https://dictionary.cambridge.org/us/dictionary/english/senior-partner",
             "https://definitions.lsd.law/senior-partner",
-            # Courses / programs
+            # Courses / programs / certifications
             "https://www.coursera.org/specializations/digital-transformation-leader",
             "https://execonline.hms.harvard.edu/senior-life-sciences-leaders-program",
+            "https://www.usaii.org/artificial-intelligence-certifications/certified-ai-transformation-leader/",
+            "https://www.cbtnuggets.com/it-training/microsoft-365/ab-731",
+            # Articles in unusual paths
+            "https://aws.amazon.com/what-is-data-strategy/",
+            "https://example.com/how-to-write-a-managing-director-job-description",
+            "https://example.com/guide-to-becoming-a-cdo",
+            "https://crummer.rollins.edu/resources/executive-director-vs-managing-director/",
+            "https://www.jdsupra.com/legalnews/senior-partners-are-the-golden-ticket-for-law-firms/",
+            "https://business.linkedin.com/en-in/talent-solutions/resources/talent-acquisition/job-descriptions/managing-director-job-description-template-linkedin/",
             # PDFs and Office files
             "https://example.com/wp-content/uploads/2024/02/BIO-EA_Admin-as-posted-1.pdf",
             "https://example.com/jobs/some-job.pdf",

@@ -101,7 +101,10 @@ class TestDeterministicOnly:
         result = ScoringAgent(clock=lambda: TODAY).score(
             _job(), _profile(), SearchCriteria()
         )
-        assert result.match_score >= 70
+        # Even strong matches pass through the seniority multiplier — the
+        # job is "VP AI Transformation" but the profile is SVP, delta=1
+        # -> x0.85 dampens what would otherwise be a 75+.
+        assert result.match_score >= 55
 
     def test_application_and_outreach_angles_populated(self):
         result = ScoringAgent(clock=lambda: TODAY).score(
@@ -193,6 +196,59 @@ class TestLLMRationale:
 # ---------------------------------------------------------------------------
 # Substantive-rationale heuristic
 # ---------------------------------------------------------------------------
+
+class TestSeniorityMultiplier:
+    """SVP-level candidates shouldn't see Manager / Engineer / Specialist
+    roles bubble to the top just because the industry/tech overlap is
+    strong. A multiplicative seniority penalty enforces this."""
+
+    def _build_job_with_title(self, title: str):
+        # Same job body (strong content overlap) but variable title so we
+        # isolate the effect of the seniority multiplier.
+        return _job(title=title)
+
+    def test_exact_seniority_match_unchanged(self):
+        # SVP profile, "SVP Technology" job -> rank delta 0 -> 1.00x multiplier.
+        result = ScoringAgent(clock=lambda: TODAY).score(
+            self._build_job_with_title("SVP Technology"),
+            _profile(),
+            SearchCriteria(),
+        )
+        # Strong content overlap typically scores ~70+ in this fixture.
+        assert result.match_score >= 60
+
+    def test_junior_role_severely_dampened(self):
+        # SVP profile, "Product Manager" job -> rank delta 3 -> 0.20x multiplier.
+        result = ScoringAgent(clock=lambda: TODAY).score(
+            self._build_job_with_title("Product Manager"),
+            _profile(),
+            SearchCriteria(),
+        )
+        # Whatever the raw content score was, the multiplier knocks it
+        # down so it can't surface above the default min_match=35.
+        assert result.match_score <= 20
+
+    def test_director_role_partially_dampened(self):
+        # SVP profile, "Director" job -> rank delta 2 -> 0.50x multiplier.
+        result = ScoringAgent(clock=lambda: TODAY).score(
+            self._build_job_with_title("Director of AI Transformation"),
+            _profile(),
+            SearchCriteria(),
+        )
+        # Halved from a strong content match (~70+) -> mid 30s.
+        assert 20 <= result.match_score <= 50
+
+    def test_rationale_explains_seniority_adjustment(self):
+        # Deterministic-only path should narrate the score adjustment.
+        result = ScoringAgent(clock=lambda: TODAY).score(
+            self._build_job_with_title("Junior Engineer"),
+            _profile(),
+            SearchCriteria(),
+        )
+        # The note about the multiplier should appear in the rationale.
+        assert "multiplier" in result.match_rationale.lower() or \
+               "reduced" in result.match_rationale.lower()
+
 
 class TestSkipLLM:
     """The `skip_llm=True` path forces deterministic-only scoring even
