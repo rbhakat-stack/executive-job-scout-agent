@@ -96,6 +96,20 @@ def render_profile_section(provider: str, model: str) -> None:
             st.success("Profile extracted.")
         except ProfileAgentError as e:
             st.error(f"Profile extraction failed: {e}")
+        except LLMError as e:
+            # Don't let a transient LLM failure crash the Streamlit script —
+            # Streamlit redacts the message in production and the user is
+            # left without a clue. Show the actual cause inline.
+            st.error(
+                f"LLM call failed ({provider}, model='{model}').\n\n"
+                f"Details: {e}\n\n"
+                "Common causes:\n"
+                "- Rate limit (Groq free tier: 30 requests/min). Wait 60s and retry.\n"
+                "- Invalid or expired API key — re-enter it in the Settings sidebar.\n"
+                "- Model name typo or deprecated model — try 'llama-3.3-70b-versatile' "
+                "for Groq or 'gpt-4o' for OpenAI.\n"
+                "- Insufficient credits / quota exhausted (check your provider dashboard)."
+            )
 
     profile = get_profile()
     if profile is not None:
