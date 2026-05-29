@@ -177,3 +177,55 @@ class TestOrchestrator:
         )
         run = orch.run(_profile(), SearchCriteria(target_titles=["VP AI"]))
         assert run.metrics.latency_ms >= 0
+
+    def test_llm_not_called_for_below_threshold_jobs(self):
+        """Two-pass scoring: jobs that fail the deterministic match
+        threshold must NOT trigger an LLM call. Saves tokens + avoids
+        rate limits on doomed leads."""
+        from src.llm import FakeLLM
+
+        # Weak job: junior frontend role, no overlap with senior life-sci profile.
+        weak_html = (
+            '<html><head><script type="application/ld+json">'
+            '{"@type":"JobPosting","title":"Junior Frontend Developer",'
+            '"hiringOrganization":{"name":"FintechCo"},'
+            '"description":"<p>We need a junior React dev to build dashboards. '
+            'Bootcamp grads welcome. No leadership needed. Substantive body content.</p>",'
+            '"datePosted":"2026-05-22"}'
+            '</script></head><body><h1>Junior Frontend Developer</h1></body></html>'
+        )
+
+        url = "https://boards.greenhouse.io/fintechco/jobs/weak"
+        search_provider = FakeSearchProvider(
+            responder=lambda q: [SearchProviderResult(title="x", url=url)]
+        )
+
+        def handler(req):
+            return httpx.Response(200, text=weak_html)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+
+        # Empty LLM queue: any LLM call would raise RuntimeError.
+        # The two-pass flow must NOT call the LLM because the weak job
+        # falls below the threshold after the deterministic pass.
+        llm = FakeLLM(responses=[])
+
+        orch = Orchestrator(
+            search_provider=search_provider,
+            http_client=client,
+            llm=llm,
+            clock=lambda: TODAY,
+        )
+        run = orch.run(
+            _profile(),
+            SearchCriteria(target_titles=["VP AI"], min_match_score=60),
+        )
+
+        # Job was rejected at the score_prefilter stage (not red_team).
+        assert run.metrics.surfaced == 0
+        assert llm.calls == [], (
+            "LLM must not be called for jobs below the deterministic threshold"
+        )
+        assert any(
+            r.stage == "score_prefilter" for r in run.rejection_log
+        ), f"expected a score_prefilter rejection; got {[r.stage for r in run.rejection_log]}"

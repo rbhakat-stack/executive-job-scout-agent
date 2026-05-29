@@ -42,17 +42,27 @@ class ScoringAgent:
         job: ValidatedJob,
         profile: CandidateProfile,
         criteria: SearchCriteria,
+        *,
+        skip_llm: bool = False,
     ) -> ScoreResult:
+        """Score a job (match + urgency) and produce a rationale.
+
+        `skip_llm=True` forces the deterministic rationale path. Used by
+        the orchestrator's two-pass flow so we don't burn LLM tokens (and
+        hit rate limits) on jobs that will be filtered by the Red Team's
+        match-score threshold anyway.
+        """
         today = self._clock()
         match_features = compute_match_features(job, profile, criteria)
         urgency_features = compute_urgency_features(job, today=today)
         match_score = _clamp_score(match_features)
         urgency_score = _clamp_score(urgency_features)
 
-        # Try LLM first (if available); fall back to deterministic if the
-        # LLM is silent, malformed, or produces a non-substantive rationale.
+        # Try LLM first (if available and not skipped); fall back to
+        # deterministic if the LLM is silent, malformed, rate-limited, or
+        # produces a non-substantive rationale.
         rationale = concerns = app_angle = outreach = None
-        if self._llm is not None:
+        if self._llm is not None and not skip_llm:
             rationale, concerns, app_angle, outreach = llm_rationale(
                 self._llm,
                 job=job,

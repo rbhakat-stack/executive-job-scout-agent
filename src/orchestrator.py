@@ -133,7 +133,46 @@ class Orchestrator:
             validated_count += 1
 
             job = v.job
-            score = scoring_agent.score(job, profile, criteria)
+
+            # Two-pass scoring.
+            #
+            # Pass 1: deterministic only. Fast, no LLM calls, no rate-limit
+            # risk. We use this to gate LLM usage on jobs that will be
+            # surfaced — most validated leads score below the threshold and
+            # would burn LLM tokens on rationales nobody sees.
+            score = scoring_agent.score(
+                job, profile, criteria, skip_llm=True,
+            )
+
+            # Pre-filter on the deterministic match score. Jobs that
+            # already fall below the threshold can't be saved by an LLM
+            # rationale — the Red Team would reject them anyway. Skip the
+            # LLM call and record a pre-filter rejection.
+            if score.match_score < criteria.min_match_score:
+                _log.info(
+                    "lead_rejected",
+                    stage="score_prefilter",
+                    url=str(job.canonical_url),
+                    match_score=score.match_score,
+                    threshold=criteria.min_match_score,
+                )
+                rejection_log.append(
+                    RejectionLogEntry(
+                        stage="score_prefilter",
+                        url=str(job.canonical_url),
+                        reason=(
+                            f"match score below threshold "
+                            f"({score.match_score} < {criteria.min_match_score})"
+                        ),
+                    )
+                )
+                continue
+
+            # Pass 2: this job is worth surfacing. Upgrade its rationale
+            # with the LLM (if one is configured).
+            if self._llm is not None:
+                score = scoring_agent.score(job, profile, criteria, skip_llm=False)
+
             evidence_bundle = evidence_agent.extract(
                 job=job, profile=profile, criteria=criteria, score=score
             )

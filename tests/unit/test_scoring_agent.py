@@ -194,6 +194,44 @@ class TestLLMRationale:
 # Substantive-rationale heuristic
 # ---------------------------------------------------------------------------
 
+class TestSkipLLM:
+    """The `skip_llm=True` path forces deterministic-only scoring even
+    when an LLM is configured. Used by the orchestrator's two-pass flow
+    to avoid burning tokens (and hitting rate limits) on jobs that will
+    be filtered by the match-score threshold anyway.
+    """
+
+    def test_skip_llm_does_not_call_the_llm(self):
+        # FakeLLM with an empty queue would raise on .complete() — proves
+        # the agent didn't call it.
+        llm = FakeLLM(responses=[])
+        agent = ScoringAgent(llm, clock=lambda: TODAY)
+        result = agent.score(_job(), _profile(), SearchCriteria(), skip_llm=True)
+        assert llm.calls == []
+        # Rationale still populated via the deterministic floor.
+        assert "Match score" in result.match_rationale
+
+    def test_default_is_to_use_llm(self):
+        llm = FakeLLM(
+            responses=[
+                json.dumps(
+                    {
+                        "rationale": (
+                            "Acme Bio aligns to industry_overlap and "
+                            "match.industry citations."
+                        ),
+                        "concerns": None,
+                        "application_angle": "Apply.",
+                        "outreach_angle": "Reach out.",
+                    }
+                )
+            ]
+        )
+        agent = ScoringAgent(llm, clock=lambda: TODAY)
+        agent.score(_job(), _profile(), SearchCriteria())
+        assert len(llm.calls) == 1
+
+
 class TestSubstantiveCheck:
     def test_short_rationale_rejected(self):
         assert not is_substantive_rationale(
