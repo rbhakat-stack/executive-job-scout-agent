@@ -201,7 +201,7 @@ def render_results_table(run: RunRecord, filters: dict) -> list[JobReport]:
     df = pd.DataFrame(rows)
     st.dataframe(
         df.drop(columns=["dedup_hash"]),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Apply URL": st.column_config.LinkColumn(),
@@ -331,4 +331,4 @@ def render_run_metrics(run: RunRecord) -> None:
                     for r in run.rejection_log
                 ]
             )
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width="stretch", hide_index=True)

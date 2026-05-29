@@ -26,7 +26,13 @@ from src.schemas import (
 )
 from src.search_providers import TavilySearchProvider
 from src.search_providers.base import SearchProviderError
-from src.ui.components import (
+
+# In-package imports use relative form. Python 3.14's import system is
+# stricter about partially-initialized parent packages; an absolute
+# `from src.ui.components import ...` inside src/ui/pages.py can trip a
+# `KeyError: 'src.ui'` during the very first load of the package tree
+# (which is exactly when app.py first imports this module).
+from .components import (
     render_job_card,
     render_profile_preview,
     render_results_filters,
@@ -34,7 +40,7 @@ from src.ui.components import (
     render_run_metrics,
     render_settings_panel,
 )
-from src.ui.state import (
+from .state import (
     KEY_PROFILE_ID,
     clear_profile,
     get_last_run,
