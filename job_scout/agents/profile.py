@@ -111,6 +111,64 @@ _SENIORITY_ALIASES: dict[str, str] = {
 }
 
 
+def _extract_json_object(text: str) -> str:
+    """Best-effort extraction of a JSON object from an LLM response.
+
+    Handles three common contamination patterns:
+      1. ```json ... ```  (markdown code fences with language tag)
+      2. ``` ... ```      (markdown code fences without tag)
+      3. Prose around a single { ... } object
+    Returns the cleanest candidate substring; the caller still has to
+    `json.loads()` it.
+    """
+    import re as _re
+
+    s = (text or "").strip()
+    if not s:
+        return s
+
+    # 1. Strip markdown code fences with optional language tag.
+    fence_pattern = _re.compile(
+        r"^```(?:json|JSON)?\s*\n?(.*?)\n?```$", _re.DOTALL
+    )
+    m = fence_pattern.match(s)
+    if m:
+        s = m.group(1).strip()
+
+    # 2. Slice between the first '{' and the matching closing '}' (handles
+    #    nested braces and quoted strings naively but well enough for
+    #    well-formed-but-prose-wrapped LLM output).
+    start = s.find("{")
+    if start == -1:
+        return s
+    depth = 0
+    in_string = False
+    escape = False
+    end = -1
+    for i in range(start, len(s)):
+        ch = s[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+        else:
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+    if end != -1:
+        return s[start : end + 1]
+    return s
+
+
 def _normalize_seniority_value(raw: object) -> object:
     """Map a free-form seniority string to a canonical SeniorityLevel value.
 
@@ -211,12 +269,23 @@ class ProfileAgent:
 
     @staticmethod
     def _parse_response(text: str) -> dict:
+        """Tolerate common LLM artifacts before JSON-parsing.
+
+        Real LLM responses sometimes include:
+          - markdown code fences (```json ... ``` or ``` ... ```)
+          - leading prose ("Here is the JSON:\n{...}")
+          - trailing prose after the JSON object
+        Strip those before trying `json.loads`, and as a last resort
+        extract the substring between the first '{' and matching last '}'.
+        """
+        candidate = _extract_json_object(text)
         try:
-            obj = json.loads(text)
+            obj = json.loads(candidate)
         except json.JSONDecodeError as e:
             raise ProfileAgentError(
                 f"LLM did not return valid JSON: {e}. "
-                f"First 200 chars: {text[:200]!r}"
+                f"First 200 chars: {candidate[:200]!r}. "
+                f"Length: {len(candidate)} chars."
             ) from e
         if not isinstance(obj, dict):
             raise ProfileAgentError(

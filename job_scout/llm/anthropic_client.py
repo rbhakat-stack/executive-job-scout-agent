@@ -19,7 +19,7 @@ class AnthropicLLM:
         api_key: str,
         *,
         model: str = "claude-opus-4-7",
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> None:
         if not api_key:
             raise LLMError("Anthropic API key is required.")

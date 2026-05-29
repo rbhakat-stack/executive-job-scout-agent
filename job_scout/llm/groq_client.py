@@ -18,7 +18,7 @@ class GroqLLM:
         api_key: str,
         *,
         model: str = "llama-3.3-70b-versatile",
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> None:
         if not api_key:
             raise LLMError("Groq API key is required.")

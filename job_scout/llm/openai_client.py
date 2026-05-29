@@ -13,7 +13,7 @@ class OpenAILLM:
         api_key: str,
         *,
         model: str = "gpt-4o",
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> None:
         if not api_key:
             raise LLMError("OpenAI API key is required.")

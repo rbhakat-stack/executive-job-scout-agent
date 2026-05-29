@@ -173,6 +173,56 @@ class TestErrors:
             )
 
 
+class TestRobustJSONExtraction:
+    """Real LLMs sometimes wrap JSON in markdown fences or surrounding
+    prose despite instructions not to. The agent should tolerate the
+    common cases instead of failing the user's run."""
+
+    def test_markdown_json_fence_is_stripped(self):
+        canned = _canned_profile_json()
+        wrapped = f"```json\n{canned}\n```"
+        llm = FakeLLM(responses=[wrapped])
+        agent = ProfileAgent(llm)
+        profile = agent.extract(
+            resume_filename="resume.txt",
+            resume_bytes=_resume_bytes(SUBSTANTIVE_RESUME),
+        )
+        assert profile.seniority_level is SeniorityLevel.SVP
+
+    def test_plain_markdown_fence_is_stripped(self):
+        canned = _canned_profile_json()
+        wrapped = f"```\n{canned}\n```"
+        llm = FakeLLM(responses=[wrapped])
+        agent = ProfileAgent(llm)
+        profile = agent.extract(
+            resume_filename="resume.txt",
+            resume_bytes=_resume_bytes(SUBSTANTIVE_RESUME),
+        )
+        assert profile.seniority_level is SeniorityLevel.SVP
+
+    def test_prose_around_json_is_tolerated(self):
+        canned = _canned_profile_json()
+        wrapped = f"Here is the JSON object you requested:\n\n{canned}\n\nLet me know if you need changes."
+        llm = FakeLLM(responses=[wrapped])
+        agent = ProfileAgent(llm)
+        profile = agent.extract(
+            resume_filename="resume.txt",
+            resume_bytes=_resume_bytes(SUBSTANTIVE_RESUME),
+        )
+        assert profile.seniority_level is SeniorityLevel.SVP
+
+    def test_braces_inside_strings_dont_confuse_depth_counter(self):
+        # JSON where a string value contains literal { and } — the
+        # bracket-matching extractor must not stop early.
+        from job_scout.agents.profile import _extract_json_object
+        import json as _json
+
+        tricky = '{"summary": "a } and { inside", "seniority_level": "svp"}'
+        out = _extract_json_object(f"Sure, here you go:\n{tricky}\nThanks.")
+        parsed = _json.loads(out)
+        assert parsed["seniority_level"] == "svp"
+
+
 class TestSeniorityNormalization:
     """The LLM frequently emits seniority values that mirror the resume's
     title (e.g. 'senior_partner') rather than the canonical enum value
